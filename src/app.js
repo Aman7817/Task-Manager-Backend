@@ -1,47 +1,51 @@
-
-
 // Importing necessary dependencies
-import express from "express";           // Express framework for creating the server
-import cors from "cors";                 // CORS middleware to handle cross-origin requests
-import cookieParser from "cookie-parser"; // Cookie parser to handle cookies in requests
+import express from "express";           
+import cors from "cors";                 
+import cookieParser from "cookie-parser"; 
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 // Initialize an Express application
 const app = express();
  
 // Enable Cross-Origin Resource Sharing (CORS)
-// CORS allows the backend to accept requests from specified origins (e.g., frontend)
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,    // The allowed origin for requests (usually the frontend URL)
-    credentials: true                   // Allows cookies and credentials to be sent with requests
+    origin: process.env.CORS_ORIGIN,    
+    credentials: true                   
 }));
 
-// Middleware to parse JSON bodies in incoming requests
-// The 'limit' option restricts the maximum size of the JSON payload
+// Middleware to parse JSON bodies
 app.use(express.json({ limit: "20kb" }));
 
-// Middleware to parse URL-encoded data in requests (e.g., form submissions)
-// 'extended' allows you to send complex objects, 'limit' restricts the payload size
+// Middleware to parse URL-encoded data
 app.use(express.urlencoded({ extended: true, limit: "20kb" }));
 
-// Serve static files from the 'public' directory
-// This allows you to serve images, CSS files, JavaScript files, etc., from the 'public' folder
-app.use(express.static('public')); // 'kuch bhe images ya or kuch bhe rakh ne ke liye' (comment in Urdu)
+// Serve static files
+app.use(express.static('public'));
 
-// Middleware to parse cookies from incoming requests
-app.use(cookieParser()); // To access cookies sent by the client in `req.cookies`
-
+// Middleware to parse cookies
+app.use(cookieParser());
 
 // routes import 
+import userRouter from './routes/user.routes.js';
+import taskRouter from './routes/task.routes.js';
+import syncRouter from './routes/sync.routes.js'; // NEW SYNC ROUTES
 
-import  userRouter  from './routes/user.routes.js'
-import  taskRouter  from './routes/task.routes.js'
+// routes declaration 
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/task", taskRouter);
+app.use("/api/v1/sync", syncRouter); // NEW SYNC ROUTES
 
-/// rouets declaration 
-app.use("/api/v1/users",userRouter)
-app.use("/api/v1/task", taskRouter)
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+    res.status(200).json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        service: "Task Sync API"
+    });
+});
 
-
-// http://localhost:8000/api/v1/users/register
-
-// Export the app so it can be used in other files (e.g., for routing or starting the server)
+// Export the app
 export { app };
