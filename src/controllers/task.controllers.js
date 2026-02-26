@@ -50,13 +50,55 @@ const getTask = asyncHandler(async(req,res) => {
 });
 
 const getAllTasks = asyncHandler(async(req,res) => {
-    const tasks = await Task.find({
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Filter by status
+    const statusFilter = {};
+    if (req.query.status === 'completed') {
+        statusFilter.completed = true;
+    } else if (req.query.status === 'pending') {
+        statusFilter.completed = false;
+    }
+    
+    // Search by title
+    const searchFilter = {};
+    if (req.query.search) {
+        searchFilter.title = { $regex: req.query.search, $options: 'i' };
+    }
+    
+    // Combine filters
+    const filter = {
         userId: req.user._id,
-        isDeleted: false
-    }).sort({ createdAt: -1 });
+        isDeleted: false,
+        ...statusFilter,
+        ...searchFilter
+    };
+    
+    // Get tasks with pagination
+    const tasks = await Task.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    
+    // Get total count for pagination
+    const totalTasks = await Task.countDocuments(filter);
+    const totalPages = Math.ceil(totalTasks / limit);
     
     return res.status(200).json(
-        new ApiResponse(200, tasks, "Tasks retrieved successfully.")
+        new ApiResponse(200, {
+            tasks,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalTasks,
+                limit,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
+            }
+        }, "Tasks retrieved successfully.")
     );
 });
 
